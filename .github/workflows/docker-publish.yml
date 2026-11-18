@@ -1,4 +1,4 @@
-# Build the Docker image once, smoke that exact image, and publish that same image to GHCR (ghcr.io/hue2/tcg-price-watch).
+# Build the Docker image once, smoke that exact image, and publish that same image to GHCR (ghcr.io/hue2/tcg-price-monitor).
 # `build` is read-only (contents: read) and runs on every event; `publish` alone holds packages:write and runs only on
 # main (push event or a workflow_dispatch run on main). The image is passed between them as a docker-save artifact and
 # its image id is re-checked before the push, so what is smoked is byte-for-byte what is published.
@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE_NAME: ghcr.io/hue2/tcg-price-watch   # must be lowercase (GHCR rejects uppercase)
+  IMAGE_NAME: ghcr.io/hue2/tcg-price-monitor   # must be lowercase (GHCR rejects uppercase)
 
 jobs:
   build:

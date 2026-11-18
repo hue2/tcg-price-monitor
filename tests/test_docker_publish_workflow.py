@@ -59,7 +59,7 @@ def test_publish_only_on_main_non_pr():
 
 def test_image_name_and_tags():
     name = WF["env"]["IMAGE_NAME"]
-    assert name == "ghcr.io/hue2/tcg-price-watch" and name == name.lower()
+    assert name == "ghcr.io/hue2/tcg-price-monitor" and name == name.lower()
     meta = _step("docker/metadata-action", steps=PUBLISH["steps"])["with"]
     assert meta["images"] == "${{ env.IMAGE_NAME }}"
     assert "type=raw,value=latest" in meta["tags"]

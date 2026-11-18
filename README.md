@@ -277,10 +277,10 @@ Docker Desktop (Mac/Windows) handles bind-mount ownership itself, so skip the ch
 **Prebuilt image (GHCR).** CI (`.github/workflows/docker-publish.yml`) builds the image once on every pull request and push (a read-only `build` job: no `packages:write`, nothing pushed) and smokes that exact
 image with `TCGWATCH_SMOKE_IMAGE=<tag> scripts/docker-smoke.sh` (no rebuild; unset, the script builds `tcgwatch:local` as before). On `main` only, a
 separate `publish` job (the sole holder of `packages:write`) loads that same tested image, re-checks its image id, and `docker push`es it as
-`ghcr.io/hue2/tcg-price-watch` with the tags `latest`, the `pyproject.toml` version (e.g. `0.12.0`) and `sha-<short>`. It authenticates with the built-in `GITHUB_TOKEN` only (no other secrets). GHCR
-packages start **private**: until the owner makes the package public (GitHub: Packages > tcg-price-watch > Package settings), `docker pull`
+`ghcr.io/hue2/tcg-price-monitor` with the tags `latest`, the `pyproject.toml` version (e.g. `0.12.0`) and `sha-<short>`. It authenticates with the built-in `GITHUB_TOKEN` only (no other secrets). GHCR
+packages start **private**: until the owner makes the package public (GitHub: Packages > tcg-price-monitor > Package settings), `docker pull`
 needs `docker login ghcr.io` with a token that has `read:packages`. Pull and run it like the compose image
-(`docker pull ghcr.io/hue2/tcg-price-watch:latest`; config and DB on a `/data` volume owned by uid 10001, see step 1 above; the image
+(`docker pull ghcr.io/hue2/tcg-price-monitor:latest`; config and DB on a `/data` volume owned by uid 10001, see step 1 above; the image
 needs no secrets).
 If the web service logs `unable to open database file` or a config permission error, this is why.
 
