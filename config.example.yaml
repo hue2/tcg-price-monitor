@@ -1,0 +1,84 @@
+# tcg-price-watch configuration. Copy to config.yaml and adjust.
+# Durations: windows/cooldowns use Nd or Nw (e.g. 7d, 2w); schedule also accepts Nh.
+
+database: data/tcgwatch.db
+
+source:
+  # TCGCSV asks for a descriptive User-Agent; put a contact in it.
+  user_agent: "tcg-price-watch/0.12.0 (+https://github.com/your-name/tcg-price-watch)"
+  request_delay_seconds: 0.2
+
+retention_days: 180      # prune price history older than this; 0/null keeps everything
+schedule:
+  at: "20:30"              # UTC wall-clock time `tcgwatch schedule` runs each day (TCGCSV publishes ~20:00)
+  late_window: 3h          # keep polling every 10m this long if the dataset is late (max 3h)
+  # catch_up_days: 7       # default max(7, largest alert window), capped at 30; fills missed days on startup
+  # check_every: 1d        # DEPRECATED: fixed-interval mode (logs a warning); prefer `at`
+
+# Default alert rule for every game. Any key can be overridden per game under `alert:`.
+alert:
+  window: 7d               # compare today against the price ~window ago
+  threshold_pct: 30        # flag moves of at least this many percent
+  direction: up            # up | down | both
+  min_price: 0.50          # ignore cards where both prices are under this
+  min_abs_change: 0.25     # ignore moves smaller than this many dollars
+  price_fields: [market, mid]   # first field present on both dates is used
+  discord_threshold_pct: 30     # only post to Discord at/above this % (never below threshold_pct)
+  max_fallback_spread: 10       # when marketPrice is null and mid is used, skip if high/low exceeds this (0 = off)
+  # cooldown: 7d           # don't re-flag the same card within this period (default = window)
+
+notify:
+  console: true
+  discord:
+    # Webhook URL (keep it out of git: config.yaml is gitignored), or leave empty and
+    # put it in the env var named by webhook_env. Empty both = Discord off.
+    webhook_url: ""
+    webhook_env: TCGWATCH_DISCORD_WEBHOOK
+    format: text      # text (default, one line per card) | embeds (one rich embed per card)
+
+# Add a game by adding a block. Use category_id, or category_name to resolve it by name.
+web:
+  # Required for `tcgwatch web --host <non-loopback>`; then every request needs it
+  # (Authorization: Bearer <token>, or log in once at /login (POST form) to set a cookie; never put it in a URL).
+  # Env TCGWATCH_WEB_TOKEN overrides. Leave empty for localhost-only use.
+  auth_token: ""
+
+games:
+  one_piece:
+    name: One Piece Card Game
+    enabled: true
+    source: tcgcsv
+    category_id: 68
+    # Regular prints only (SEC base art included; alt-art SEC is excluded by name). Add SP, TR here for more.
+    rarities: [C, UC, R, SR, SEC, L]
+    exclude_name_patterns:
+      - '\(Alternate Art\)'
+      - '\(Full Art\)'
+      - '\(Manga\)'
+      - '\(Parallel\)'
+      - '\(SP\)'
+      - 'Treasure'
+      - 'Pre-Release'
+    printings: []          # [] = track every printing (Normal, Foil) separately
+    # Sets: a number is a TCGplayer set (group) ID, text is a regex on the set name.
+    # Run `tcgwatch sets` to list them. include_sets: [] = every set.
+    include_sets: []       # e.g. [24833, 'Royal Blood', '^OP-1[0-9]']
+    # Promo/event sets reuse C/UC/R rarities for special printings.
+    exclude_sets: ['Promotion', 'Release Event', 'Judge', 'Pre-Release']
+    # alert:
+    #   threshold_pct: 40
+    #   discord_threshold_pct: 75
+
+  riftbound:
+    name: Riftbound
+    enabled: true
+    source: tcgcsv
+    category_id: 89
+    # Regular prints (Alternate Art included). Add Epic, Showcase to include higher rarities.
+    rarities: [Common, Uncommon, Rare]
+    exclude_name_patterns:
+      - '\(Overnumbered\)'
+      - '\(Signature\)'
+    printings: []
+    include_sets: []       # e.g. ['Origins', 'Spiritforged']
+    exclude_sets: ['Promotional']

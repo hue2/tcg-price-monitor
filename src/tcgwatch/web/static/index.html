@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TCG Price Watch</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <h1>TCG Price Watch</h1>
+  <nav class="tabs" aria-label="Sections">
+    <button data-tab="cards" class="active">Cards</button>
+    <button data-tab="watchlist">Watchlist</button>
+    <button data-tab="alerts">Alerts</button>
+    <button data-tab="runs">Runs</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+  <div class="jobs">
+    <button data-job="snapshot" title="Fetch today's prices">Snapshot now</button>
+    <button data-job="backfill" title="Load the last 7 days from TCGCSV archives">Backfill 7 days</button>
+    <button data-job="run" class="warn" title="Snapshot, check, and post new movers to Discord">Run check + Discord</button>
+  </div>
+  <form id="logout" method="post" action="/logout" hidden><button title="Clear the access token cookie">Log out</button></form>
+</header>
+<p id="authBanner" class="banner" role="alert" hidden>Your session expired or the access token changed. <a href="/login">Log in again</a></p>
+<p class="status"><span id="health" class="health" hidden></span> <span id="status"></span></p>
+<details id="job" hidden><summary id="jobSummary"></summary><pre id="jobLog"></pre></details>
+
+<main>
+  <section id="tab-cards">
+    <form id="cardControls" class="controls">
+      <label>Game <select name="game"></select></label>
+      <label>Window <input name="window" placeholder="7d" size="4"></label>
+      <label>Threshold % <input name="threshold" type="number" step="any" class="short"></label>
+      <label>Discord % <input name="discord_threshold" type="number" step="any" class="short"></label>
+      <label>Direction
+        <select name="direction"><option value="">(saved)</option><option>up</option><option>down</option><option>both</option></select>
+      </label>
+      <label>Min price $ <input name="min_price" type="number" step="any" class="short"></label>
+      <label class="check"><input type="checkbox" name="all_rarities" value="true"> Include higher rarities</label>
+      <button type="submit">Apply</button>
+      <span class="hint">Blank = saved setting. These don't change your settings.</span>
+    </form>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search name or number">
+      <select id="setFilter"></select>
+      <select id="rarityFilter"></select>
+      <select id="show">
+        <option value="flagged">Flagged only</option>
+        <option value="scope" selected>All cards in scope</option>
+        <option value="all">Everything stored (incl. filtered out)</option>
+      </select>
+      <button type="button" id="csvBtn" title="Download the rows currently shown (all pages) as CSV">Download CSV</button>
+    </div>
+    <p id="summary" class="summary"></p>
+    <div class="table-wrap">
+      <table id="cards">
+        <thead><tr>
+          <th title="Watch">&#9733;</th>
+          <th data-sort="pct" class="num">Change</th>
+          <th data-sort="base" class="num">Then</th>
+          <th data-sort="cur" class="num">Now</th>
+          <th data-sort="name">Card</th>
+          <th data-sort="number">No.</th>
+          <th data-sort="rarity">Rarity</th>
+          <th data-sort="printing">Printing</th>
+          <th data-sort="set">Set</th>
+          <th>Trend</th>
+          <th>Status</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <button id="more" hidden>Show more</button>
+  </section>
+
+  <section id="tab-watchlist" hidden>
+    <div class="controls">
+      <label>Span <select id="wlDays"><option value="7">7 days</option><option value="30" selected>30 days</option>
+        <option value="90">90 days</option><option value="365">1 year</option></select></label>
+      <span class="hint">Cards you starred on the Cards tab, for the game selected there.</span>
+    </div>
+    <p id="wlSummary" class="summary"></p>
+    <div class="table-wrap">
+      <table id="watchlist">
+        <thead><tr><th>&#9733;</th><th class="num">Change</th><th class="num">Now</th><th>Trend</th>
+          <th>Card</th><th>No.</th><th>Rarity</th><th>Printing</th><th>Set</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-alerts" hidden>
+    <div class="controls">
+      <label>Show <select id="alertFilter"><option value="">All alerts</option>
+        <option value="true">Posted to Discord</option><option value="false">Noise-suppressed (not posted)</option></select></label>
+      <label>Span <select id="alertDays"><option value="7">7 days</option><option value="30" selected>30 days</option>
+        <option value="90">90 days</option><option value="">All time</option></select></label>
+    </div>
+    <p id="alertsSummary" class="summary"></p>
+    <p id="alertsError" class="notice bad" role="alert" hidden></p>
+    <div class="table-wrap">
+      <table id="alerts">
+        <thead><tr><th>Date</th><th>Posted</th><th class="num">Change</th><th class="num">Was</th><th class="num">Now</th>
+          <th>Card</th><th>Rarity</th><th>Printing</th><th>Game</th><th>Window</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-runs" hidden>
+    <p class="summary">Last 20 background and manual jobs, newest first.</p>
+    <p id="runsError" class="notice bad" role="alert" hidden></p>
+    <div class="table-wrap">
+      <table id="runs">
+        <thead><tr><th>Result</th><th>Kind</th><th>Game</th><th>Started</th><th>Finished</th>
+          <th>Dataset</th><th>Note</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-settings" hidden>
+    <div class="savebar">
+      <button id="save" class="primary">Save settings</button>
+      <button id="reload">Discard changes</button>
+      <span id="saveMsg"></span>
+    </div>
+    <form id="settings" autocomplete="off"></form>
+  </section>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>
